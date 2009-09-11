@@ -4,6 +4,7 @@ class ZendX_Form_Doctrine extends Zend_Form
     const INTEGER     = 'integer';
     const STRING      = 'string';
     const BOOLEAN     = 'boolean';
+    const TIMESTAMP   = 'timestamp';
     const ONE         = 'one';
     const MANY        = 'many';
 
@@ -55,6 +56,10 @@ class ZendX_Form_Doctrine extends Zend_Form
         return $this;
     }
 
+    /**
+     * 
+     * @return unknown_type
+     */
     protected function _createFormFieldsFromModel()
     {
         $this->clearElements();
@@ -64,6 +69,10 @@ class ZendX_Form_Doctrine extends Zend_Form
         $this->_processColumns($relationColumns);
     }
 
+    /**
+     * 
+     * @return unknown_type
+     */
     protected function _processRelations()
     {
         $table = $this->getModel()->getTable();
@@ -77,8 +86,6 @@ class ZendX_Form_Doctrine extends Zend_Form
             // Collect relation columns so they are returned by this method
             // This is used when creating the elements for the regular columns
             $relationColumns[] = $relation->getLocalColumnName();
-
-
 
             /* @var $element Zend_Form_Element_Multi */
             if (!$element instanceof Zend_Form_Element_Multi) {
@@ -128,7 +135,7 @@ class ZendX_Form_Doctrine extends Zend_Form
                 // Currently (25.11.2008) Doctring does not support mapping to models with composite
                 // primary keys, so this exception will never be triggered.
                 throw new ZendX_Form_Doctrine_Exception(
-                    'Compisite primary keys are not supported. Model "' . get_class($relatedModel) . '"',
+                    'Composite primary keys are not supported. Model "' . get_class($relatedModel) . '"',
                     1000
                 );
             }
@@ -141,25 +148,30 @@ class ZendX_Form_Doctrine extends Zend_Form
         return $optionPairs;
     }
 
+    /**
+     * Private function who process columns and generate form
+     * 
+     * @param $relationColumns
+     * @return unknown_type
+     */
     protected function _processColumns($relationColumns)
     {
         $table = $this->getModel()->getTable();
+        
         foreach ($table->getColumns() as $name => $column)
         {
             $fieldName = $table->getFieldName($name);
             if (isset($column['autoincrement'])) continue;
 
             if (in_array($name, $relationColumns)) continue;
-
             $element = $this->_createElementForColumn($fieldName, $column);
+            	
             if ($element) {
-
                 if ($this->getModel()->state() != Doctrine_Record::STATE_TCLEAN &&
                     $this->getModel()->state() != Doctrine_Record::STATE_TDIRTY) // Not a new record
                 {
                     $element->setValue($this->getModel()->get($fieldName));
                 }
-
                 $this->addElement($element);
             }
         }
@@ -183,14 +195,15 @@ class ZendX_Form_Doctrine extends Zend_Form
     protected function _createElementForColumn($fieldName, array $column)
     {
         switch ($column['type']) {
-            case self::STRING:
+        	case self::STRING:
                 return $column['length'] > 64
-                    ? new Zend_Form_Element_Textarea($fieldName)
-                    : new Zend_Form_Element_Text($fieldName);
+                    ? new Zend_Form_Element_Textarea($fieldName, array ('label'=>ucwords ($fieldName)))
+                    : new Zend_Form_Element_Text($fieldName, array ('label'=>ucwords ($fieldName)));
+            case self::TIMESTAMP:
             case self::INTEGER:
-                return new Zend_Form_Element_Text($fieldName);
+                return new Zend_Form_Element_Text($fieldName, array ('label'=>ucwords  ($fieldName)));
             case self::BOOLEAN:
-                return new Zend_Form_Element_Checkbox($fieldName);
+                return new Zend_Form_Element_Checkbox($fieldName, array ('label'=>ucwords ($fieldName)));
             default:
                 return false;
         }
